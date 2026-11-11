@@ -8,10 +8,12 @@ import (
 	"io"
 	"net"
 	"net/netip"
+	"strconv"
 	"sync"
 	"time"
 
 	N "github.com/metacubex/mihomo/common/net"
+	"github.com/metacubex/mihomo/component/resolver"
 	C "github.com/metacubex/mihomo/constant"
 
 	lclient "lulutls/client"
@@ -106,6 +108,25 @@ func NewLulutls(option LulutlsOption) (*Lulutls, error) {
 		},
 		ListenPacket: func(ctx context.Context) (net.PacketConn, error) {
 			return cDialer.ListenPacket(ctx, "udp", "", netip.AddrPort{})
+		},
+		// The QUIC lane needs the SERVER address as a *net.UDPAddr. Resolving it
+		// with net.ResolveUDPAddr would hit net.DefaultResolver, which mihomo
+		// replaces with a hard "should never be called" process exit — resolve
+		// through mihomo's own resolver instead.
+		ResolveUDP: func(ctx context.Context, addr string) (*net.UDPAddr, error) {
+			host, portStr, err := net.SplitHostPort(addr)
+			if err != nil {
+				return nil, err
+			}
+			port, err := strconv.Atoi(portStr)
+			if err != nil {
+				return nil, err
+			}
+			ip, err := resolver.ResolveIP(ctx, host)
+			if err != nil {
+				return nil, err
+			}
+			return &net.UDPAddr{IP: net.IP(ip.AsSlice()), Port: port}, nil
 		},
 	})
 	if err != nil {
