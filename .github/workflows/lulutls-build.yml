@@ -9,10 +9,10 @@ name: lulutls build
 
 on:
   push:
-    branches: [lulutls]
+    branches: [main, lulutls]
     tags: ['v*-lulutls*']
   pull_request:
-    branches: [lulutls]
+    branches: [main, lulutls]
   workflow_dispatch:
 
 permissions:
