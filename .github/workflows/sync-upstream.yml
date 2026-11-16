@@ -1,0 +1,113 @@
+name: sync upstream
+
+# Keeps the lulutls patch stack rebased onto the latest MetaCubeX/mihomo tag.
+#
+# The branch carries exactly three patches:
+#   1. feat: lulutls outbound (new file + parser/adapters registration)
+#   2. fix: dialer/resolver injection
+#   3. fix: QUIC/WebRTC lane resolvers
+#
+# `.github/upstream-base` records the upstream tag the branch is currently
+# based on; this job rebases onto the newest tag and opens a PR. Conflicts are
+# reported as an issue instead of failing silently.
+
+on:
+  schedule:
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Upstream tag to sync to (default: latest)'
+        required: false
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+concurrency:
+  group: sync-upstream
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: lulutls
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: Resolve upstream tag
+        id: tag
+        run: |
+          git remote add upstream https://github.com/MetaCubeX/mihomo.git
+          git fetch upstream --tags --force --quiet
+          if [ -n "${{ inputs.tag }}" ]; then
+            TAG="${{ inputs.tag }}"
+          else
+            TAG="$(git tag -l 'v[0-9]*.[0-9]*.[0-9]*' | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -1)"
+          fi
+          BASE="$(cat .github/upstream-base)"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "base=$BASE" >> "$GITHUB_OUTPUT"
+          echo "upstream tag: $TAG (current base: $BASE)"
+
+      - name: Skip when already current
+        id: check
+        run: |
+          if [ "${{ steps.tag.outputs.tag }}" = "${{ steps.tag.outputs.base }}" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Rebase patch stack
+        if: steps.check.outputs.skip == 'false'
+        id: rebase
+        run: |
+          set +e
+          git rebase --onto "${{ steps.tag.outputs.tag }}" "${{ steps.tag.outputs.base }}" lulutls
+          rc=$?
+          if [ $rc -ne 0 ]; then
+            git diff --name-only --diff-filter=U > /tmp/conflicts.txt
+            echo "conflict=true" >> "$GITHUB_OUTPUT"
+            echo "### 冲突文件" > /tmp/body.md
+            sed 's/^/- /' /tmp/conflicts.txt >> /tmp/body.md
+          else
+            echo "conflict=false" >> "$GITHUB_OUTPUT"
+            echo "${{ steps.tag.outputs.tag }}" > .github/upstream-base
+            git add .github/upstream-base
+            git -c user.name=github-actions -c user.email=actions@github.com \
+              commit -m "chore: sync upstream to ${{ steps.tag.outputs.tag }}"
+          fi
+          exit 0
+
+      - name: Report conflict
+        if: steps.check.outputs.skip == 'false' && steps.rebase.outputs.conflict == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh issue create \
+            --title "sync: ${{ steps.tag.outputs.tag }} 需要手工 rebase" \
+            --body-file /tmp/body.md || true
+
+      - name: Verify build
+        if: steps.check.outputs.skip == 'false' && steps.rebase.outputs.conflict == 'false'
+        run: |
+          go build -tags "with_gvisor lulutls_uquic" ./...
+          go test ./constant/ ./adapter/... ./config/... -count=1
+
+      - name: Open PR
+        if: steps.check.outputs.skip == 'false' && steps.rebase.outputs.conflict == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          BRANCH="sync/${{ steps.tag.outputs.tag }}"
+          git push origin "HEAD:refs/heads/$BRANCH" --force
+          gh pr create \
+            --base lulutls --head "$BRANCH" \
+            --title "chore: sync upstream to ${{ steps.tag.outputs.tag }}" \
+            --body "Automatic rebase of the lulutls patch stack onto ${{ steps.tag.outputs.tag }}. Build + unit tests green. 需要回归：五条 lane 真机冒烟、uTLS 指纹比对。" \
+            || true
