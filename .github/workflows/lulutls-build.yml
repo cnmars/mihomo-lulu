@@ -52,7 +52,7 @@ jobs:
           GOARCH: ${{ matrix.goarch }}
         run: |
           VERSION="$(git describe --tags --always)"
-          go build -tags with_gvisor -trimpath \
+          go build -tags "with_gvisor lulutls_uquic" -trimpath \
             -ldflags "-s -w \
               -X 'github.com/metacubex/mihomo/constant.Version=${VERSION}' \
               -X 'github.com/metacubex/mihomo/constant.BuildTime=$(date -u +%Y-%m-%dT%H:%M:%SZ)'" \
