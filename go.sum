@@ -10,6 +10,8 @@ github.com/akutz/memconn v0.1.0 h1:NawI0TORU4hcOMsMr11g7vwlCdkYeLKXBcxWu2W/P8A=
 github.com/akutz/memconn v0.1.0/go.mod h1:Jo8rI7m0NieZyLI5e2CDlRdRqRRB4S7Xp77ukDjH+Fw=
 github.com/andybalholm/brotli v1.1.1 h1:PR2pgnyFznKEugtsUo0xLdDop5SKXd5Qf5ysW+7XdTA=
 github.com/andybalholm/brotli v1.1.1/go.mod h1:05ib4cKhjx3OQYUY22hTVd34Bc8upXjOLL2rKwwZBoA=
+github.com/arieeses/uquic v0.0.7-0.20261105083423-08ae4ecb033b h1:YYm9gIc1CDvkeuewFWxbpiB507+zDbwplTaAyIa7QC8=
+github.com/arieeses/uquic v0.0.7-0.20261105083423-08ae4ecb033b/go.mod h1:V7YxkYPGKymwH+m5sX9b2oszwmtOchVpA23nRZsktDg=
 github.com/bahlo/generic-list-go v0.2.0 h1:5sz/EEAK+ls5wF+NeqDpk5+iNdMDXrh3z3nPnH1Wvgk=
 github.com/bahlo/generic-list-go v0.2.0/go.mod h1:2KvAjgMlE5NNynlg/5iLrrCCZ2+5xWbdbCW3pNTGyYg=
 github.com/blang/semver v3.5.1+incompatible/go.mod h1:kRBLl5iJ+tD4TcOOxsy/0fnwebNt5EWlYSAyrTnjyyk=
@@ -271,8 +273,6 @@ github.com/rasky/go-lzo v0.0.0-20200203143853-96a758eda86e h1:dCWirM5F3wMY+cmRda
 github.com/rasky/go-lzo v0.0.0-20200203143853-96a758eda86e/go.mod h1:9leZcVcItj6m9/CfHY5Em/iBrCz7js8LcRQGTKEEv2M=
 github.com/refraction-networking/clienthellod v0.5.0-alpha2 h1:h4y/a97p9EsxAdhXYCBcf8kGfroJ6sjTQ4F/yJyna4A=
 github.com/refraction-networking/clienthellod v0.5.0-alpha2/go.mod h1:4vN+Qh4x2TznUMsfw6N3ohGjwvfs6lnwwNPUn7zI9bQ=
-github.com/refraction-networking/uquic v0.0.7-0.20260804184259-837c7ce1b72b h1:Mishx9fHA/sUb9sFw1d6BsToH21ROmxvlE21w8ccZSU=
-github.com/refraction-networking/uquic v0.0.7-0.20260804184259-837c7ce1b72b/go.mod h1:V7YxkYPGKymwH+m5sX9b2oszwmtOchVpA23nRZsktDg=
 github.com/refraction-networking/utls v1.7.4-0.20250521174854-63aeec73c564 h1:kuV7I+72CUfosf+zpNKsEXcIAy4upFEiG4lWeAdM62o=
 github.com/refraction-networking/utls v1.7.4-0.20250521174854-63aeec73c564/go.mod h1:TUhh27RHMGtQvjQq+RyO11P6ZNQNBb3N0v7wsEjKAIQ=
 github.com/rogpeppe/go-internal v1.12.0 h1:exVL4IDcn6na9z1rAb56Vxr+CgyK3nn3O+epU5NdKM8=
