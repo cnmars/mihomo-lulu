@@ -47,7 +47,6 @@ const (
 	Mieru
 	AnyTLS
 	Sudoku
-	Lulutls
 	Masque
 	TrustTunnel
 	ShadowQuic
@@ -56,6 +55,7 @@ const (
 	ZeroTier
 	EasyTier
 	GostRelay
+	Lulutls
 )
 
 const (
@@ -227,8 +227,6 @@ func (at AdapterType) String() string {
 		return "AnyTLS"
 	case Sudoku:
 		return "Sudoku"
-	case Lulutls:
-		return "Lulutls"
 	case Masque:
 		return "Masque"
 	case TrustTunnel:
@@ -255,6 +253,8 @@ func (at AdapterType) String() string {
 		return "URLTest"
 	case LoadBalance:
 		return "LoadBalance"
+	case Lulutls:
+		return "Lulutls"
 	default:
 		return "Unknown"
 	}
