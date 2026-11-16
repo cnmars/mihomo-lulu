@@ -38,6 +38,7 @@ jobs:
           ref: lulutls
           fetch-depth: 0
           submodules: recursive
+          token: ${{ secrets.SUBMODULE_TOKEN || github.token }}
 
       - name: Resolve upstream tag
         id: tag

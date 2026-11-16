@@ -1,4 +1,4 @@
 [submodule "lulutls-kernel"]
 	path = lulutls-kernel
-	url = git@github.com:cnmars/lulutls.git
+	url = https://github.com/cnmars/lulutls.git
 	branch = main

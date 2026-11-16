@@ -40,6 +40,7 @@ jobs:
         with:
           submodules: recursive
           fetch-depth: 0
+          token: ${{ secrets.SUBMODULE_TOKEN || github.token }}
 
       - uses: actions/setup-go@v5
         with:
