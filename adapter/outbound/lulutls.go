@@ -8,6 +8,7 @@ import (
 	"io"
 	"net"
 	"net/netip"
+	"net/url"
 	"strconv"
 	"sync"
 	"time"
@@ -46,6 +47,85 @@ type Lulutls struct {
 
 	mu     sync.Mutex
 	closed bool
+
+	// Lane G (webrtc) pays ICE+DTLS+SCTP on the first dial of a cold session,
+	// which can outlast the client's speed-test timeout. A warm-up dial keeps
+	// the shared session hot so the first user-visible dial is cheap.
+	warmMu   sync.Mutex
+	warming  chan struct{}
+	warmedAt time.Time
+}
+
+const (
+	warmupTimeout  = 8 * time.Second
+	warmupCooldown = 30 * time.Second
+)
+
+// Warmup starts (or joins) a background warm-up dial. Best effort: failures are
+// ignored, and a successful warm is not retried for warmupCooldown.
+func (l *Lulutls) Warmup() {
+	l.startWarmup()
+}
+
+// AwaitWarmup waits up to d for an in-flight warm-up (starting one if none is
+// running). It is used by the delay test so the measured dial is never the cold
+// one, without charging the cold-start cost to the reported latency.
+func (l *Lulutls) AwaitWarmup(ctx context.Context, d time.Duration) {
+	if d <= 0 {
+		return
+	}
+	ch := l.startWarmup()
+	if ch == nil {
+		return
+	}
+	timer := time.NewTimer(d)
+	defer timer.Stop()
+	select {
+	case <-ch:
+	case <-ctx.Done():
+	case <-timer.C:
+	}
+}
+
+func (l *Lulutls) startWarmup() chan struct{} {
+	l.warmMu.Lock()
+	defer l.warmMu.Unlock()
+	if l.warming != nil {
+		return l.warming
+	}
+	if time.Since(l.warmedAt) < warmupCooldown {
+		return nil
+	}
+	ch := make(chan struct{})
+	l.warming = ch
+	go func() {
+		// Dial the same target the delay test uses: it opens (or reuses) the
+		// shared lulutls session, and the throwaway stream is closed at once.
+		ctx, cancel := context.WithTimeout(context.Background(), warmupTimeout)
+		defer cancel()
+		if c, err := l.dialer.DialTCP(ctx, warmupTarget()); err == nil {
+			_ = c.Close()
+			l.warmMu.Lock()
+			l.warmedAt = time.Now()
+			l.warmMu.Unlock()
+		}
+		l.warmMu.Lock()
+		l.warming = nil
+		close(ch)
+		l.warmMu.Unlock()
+	}()
+	return ch
+}
+
+func warmupTarget() string {
+	if u, err := url.Parse(C.DefaultTestURL); err == nil && u.Hostname() != "" {
+		port := u.Port()
+		if port == "" {
+			port = "443"
+		}
+		return net.JoinHostPort(u.Hostname(), port)
+	}
+	return "1.1.1.1:443"
 }
 
 // LulutlsOption is the proxy entry as parsed from the Clash profile.
