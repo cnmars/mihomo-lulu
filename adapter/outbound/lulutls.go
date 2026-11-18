@@ -60,7 +60,10 @@ type Lulutls struct {
 const (
 	warmupTimeout  = 8 * time.Second
 	warmupCooldown = 10 * time.Second
-	warmupInterval = 15 * time.Second
+	// A cold lane G handshake over a lossy UDP path succeeds maybe one time in
+	// three, so keep retrying often until it sticks; once warm, the cooldown
+	// spaces the keep-alive to ~12s.
+	warmupInterval = 3 * time.Second
 )
 
 // Warmup starts the keep-warm loop: an immediate dial, then one cheap stream
