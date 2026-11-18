@@ -54,17 +54,53 @@ type Lulutls struct {
 	warmMu   sync.Mutex
 	warming  chan struct{}
 	warmedAt time.Time
+	keepStop chan struct{}
 }
 
 const (
 	warmupTimeout  = 8 * time.Second
-	warmupCooldown = 30 * time.Second
+	warmupCooldown = 10 * time.Second
+	warmupInterval = 15 * time.Second
 )
 
-// Warmup starts (or joins) a background warm-up dial. Best effort: failures are
-// ignored, and a successful warm is not retried for warmupCooldown.
+// Warmup starts the keep-warm loop: an immediate dial, then one cheap stream
+// every warmupInterval while the node is selected, so the lane G session never
+// goes cold between the user's selections and their speed tests.
 func (l *Lulutls) Warmup() {
 	l.startWarmup()
+	l.startKeepWarm()
+}
+
+// Unwarm stops the keep-warm loop when the node is no longer selected.
+func (l *Lulutls) Unwarm() {
+	l.warmMu.Lock()
+	if l.keepStop != nil {
+		close(l.keepStop)
+		l.keepStop = nil
+	}
+	l.warmMu.Unlock()
+}
+
+func (l *Lulutls) startKeepWarm() {
+	l.warmMu.Lock()
+	defer l.warmMu.Unlock()
+	if l.keepStop != nil {
+		return
+	}
+	stop := make(chan struct{})
+	l.keepStop = stop
+	go func() {
+		ticker := time.NewTicker(warmupInterval)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-stop:
+				return
+			case <-ticker.C:
+				l.startWarmup()
+			}
+		}
+	}()
 }
 
 // AwaitWarmup waits up to d for an in-flight warm-up (starting one if none is
@@ -260,6 +296,7 @@ func (l *Lulutls) Close() error {
 		return nil
 	}
 	l.closed = true
+	l.Unwarm()
 	return l.dialer.Close()
 }
 
