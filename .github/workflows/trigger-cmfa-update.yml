@@ -8,8 +8,6 @@ on:
       - ".github/ISSUE_TEMPLATE/**"
     branches:
       - Alpha
-    tags:
-      - "v*"
       
 jobs:
   # Send "core-updated" to MetaCubeX/ClashMetaForAndroid to trigger update-dependencies
