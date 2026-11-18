@@ -210,6 +210,21 @@ func (p *Proxy) URLTest(ctx context.Context, url string, expectedStatus utils.In
 		return
 	}
 
+	// lulutls pays ICE+DTLS+SCTP on a cold session; let it warm up before the
+	// clock starts so the reported delay is not a cold-start timeout. Only
+	// adapters that opt in (currently lulutls) are affected.
+	if w, ok := p.ProxyAdapter.(interface {
+		AwaitWarmup(context.Context, time.Duration)
+	}); ok {
+		wait := 4 * time.Second
+		if deadline, has := ctx.Deadline(); has {
+			if rem := time.Until(deadline) - 1500*time.Millisecond; rem < wait {
+				wait = rem
+			}
+		}
+		w.AwaitWarmup(ctx, wait)
+	}
+
 	start := time.Now()
 	instance, err := p.DialContext(ctx, &addr)
 	if err != nil {

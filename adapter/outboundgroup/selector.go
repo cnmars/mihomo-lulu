@@ -79,7 +79,12 @@ func (s *Selector) Now() string {
 func (s *Selector) Set(name string) error {
 	for _, proxy := range s.GetProxies(false) {
 		if proxy.Name() == name {
+			old := s.selectedProxy(false)
 			s.selected = name
+			if old.Name() != name {
+				unwarmProxy(old)
+			}
+			warmProxy(proxy)
 			return nil
 		}
 	}
@@ -89,6 +94,24 @@ func (s *Selector) Set(name string) error {
 
 func (s *Selector) ForceSet(name string) {
 	s.selected = name
+	if name != "" {
+		warmProxy(s.selectedProxy(false))
+	}
+}
+
+// warmProxy kicks the keep-warm loop on adapters that support it (currently the
+// lulutls outbound): the node is about to carry user traffic, so pay the
+// cold-start handshake before the user's first connection instead of during it.
+func warmProxy(proxy C.Proxy) {
+	if w, ok := proxy.Adapter().(interface{ Warmup() }); ok {
+		w.Warmup()
+	}
+}
+
+func unwarmProxy(proxy C.Proxy) {
+	if w, ok := proxy.Adapter().(interface{ Unwarm() }); ok {
+		w.Unwarm()
+	}
 }
 
 // Unwrap implements C.ProxyAdapter

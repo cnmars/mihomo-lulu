@@ -178,3 +178,8 @@ require (
 replace google.golang.org/protobuf => github.com/metacubex/protobuf-go v0.0.0-20260306035419-7ceee0674686
 
 replace lulutls => ../lulutls-kernel
+
+// uQUIC fork with the browser ClientHello/transport-parameter set lane D expects.
+// Replace directives in dependency modules are ignored, so this must live in the
+// main module of whatever builds the kernel (mihomo here, core/go.mod for the app).
+replace github.com/refraction-networking/uquic => github.com/arieeses/uquic v0.0.7-0.20261105083423-08ae4ecb033b
